@@ -1,12 +1,18 @@
 const { MongoClient } = require("mongodb");
 
+// Command line arguments
+let uri = process.argv[2] || "mongodb://localhost:27017"; // URI will be the first argument
+let limit = parseInt(process.argv[3], 10) || 10; // limit will be the second argument
+
 async function run() {
-  const uri = "mongodb://localhost:27017";
   const client = new MongoClient(uri);
   try {
+    console.log("trying to connect to mongo");
     await client.connect();
 
-    const db = client.db("myDB"); // replace 'myDB' with your database name
+    console.log("connected to mongo");
+
+    const db = client.db("elearning"); // replace 'myDB' with your database name
     const vouchers = db.collection("vouchers");
     const payrexxes = db.collection("payrexxes");
 
@@ -28,12 +34,16 @@ async function run() {
           $unwind: "$payrexxInfo",
         },
         {
-          $limit: 10, // limit the number of documents to 10
+          $sort: { created: -1 }, // sort by 'created' in descending order
+        },
+        {
+          $limit: limit, // limit the number of documents to 10
         },
       ])
       .toArray();
 
     for (let item of result) {
+      console.log(item._id, item.code, item.chargeId);
       let originalAmount = item.payrexxInfo.invoice.originalAmount;
       await vouchers.updateOne(
         { _id: item._id },
